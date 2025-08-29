@@ -11,6 +11,7 @@ type ModelCtx = {
   selectedId: string | null;
   setSelectedId: (id: string | null) => void;
   addPrimitive: (p: Primitive) => void;
+  addGroup: () => void;
   setParent: (id: string, newParentId: string | null) => void;
 };
 
@@ -27,11 +28,18 @@ export default function App() {
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  // a "group" is any node with children array (root or subassembly)
+  const isGroup = (n?: Node) => !!n && n.children !== undefined;
+
   const addPrimitive: ModelCtx['addPrimitive'] = (p) => {
     const newId = nid();
     const name = p.type;
+
     setById(prev => {
-      const parent = prev[rootId];
+      const selected = selectedId ? prev[selectedId] : undefined;
+      const parentId = (selected && isGroup(selected)) ? selected.id : rootId;
+      const parent = prev[parentId];
+
       const newNode: Node = {
         id: newId,
         name,
@@ -45,6 +53,33 @@ export default function App() {
         [parent.id]: { ...parent, children: [...(parent.children ?? []), newId] }
       };
     });
+
+    setSelectedId(newId);
+  };
+
+  const addGroup: ModelCtx['addGroup'] = () => {
+    const newId = nid();
+    const name = 'Subassembly';
+
+    setById(prev => {
+      const selected = selectedId ? prev[selectedId] : undefined;
+      const parentId = (selected && isGroup(selected)) ? selected.id : rootId;
+      const parent = prev[parentId];
+
+      const newGroup: Node = {
+        id: newId,
+        name,
+        parentId: parent.id,
+        transform: defT(),
+        children: []
+      };
+      return {
+        ...prev,
+        [newId]: newGroup,
+        [parent.id]: { ...parent, children: [...(parent.children ?? []), newId] }
+      };
+    });
+
     setSelectedId(newId);
   };
 
@@ -55,6 +90,7 @@ export default function App() {
       const oldParentId = node.parentId;
       const next = { ...prev };
 
+      // remove from old parent
       if (oldParentId && next[oldParentId]) {
         next[oldParentId] = {
           ...next[oldParentId],
@@ -62,8 +98,10 @@ export default function App() {
         };
       }
 
+      // update node
       next[id] = { ...node, parentId: newParentId };
 
+      // add to new parent
       if (newParentId && next[newParentId]) {
         next[newParentId] = {
           ...next[newParentId],
@@ -76,7 +114,8 @@ export default function App() {
   };
 
   const api = useMemo<ModelCtx>(() => ({
-    byId, setById, rootId, selectedId, setSelectedId, addPrimitive, setParent
+    byId, setById, rootId, selectedId, setSelectedId,
+    addPrimitive, addGroup, setParent
   }), [byId, selectedId]);
 
   return (

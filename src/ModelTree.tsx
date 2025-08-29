@@ -5,6 +5,10 @@ function TreeItem({ node }: { node: Node }) {
   const { byId, selectedId, setSelectedId } = useModel();
   const isSelected = selectedId === node.id;
 
+  const label = node.primitive
+    ? `${node.name} (${node.primitive.type})`
+    : `${node.name} [Group]`;
+
   return (
     <div style={{ marginLeft: node.parentId ? 12 : 0 }}>
       <div
@@ -18,7 +22,7 @@ function TreeItem({ node }: { node: Node }) {
         }}
         title={node.id}
       >
-        {node.primitive ? `${node.name} (${node.primitive.type})` : node.name}
+        {label}
       </div>
       {(node.children ?? []).map(cid => (
         <TreeItem key={cid} node={byId[cid]} />
@@ -28,7 +32,7 @@ function TreeItem({ node }: { node: Node }) {
 }
 
 export default function ModelTree() {
-  const { byId, rootId, addPrimitive } = useModel();
+  const { byId, rootId, addPrimitive, addGroup } = useModel();
   const root = byId[rootId];
 
   const addBox = () => addPrimitive({ type: 'box', w: 1, h: 1, d: 1 });
@@ -48,6 +52,7 @@ export default function ModelTree() {
     >
       <h4>Model Tree</h4>
       <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+        <button onClick={addGroup}>+ Subassembly</button>
         <button onClick={addBox}>+ Box</button>
         <button onClick={addSphere}>+ Sphere</button>
         <button onClick={addCylinder}>+ Cylinder</button>

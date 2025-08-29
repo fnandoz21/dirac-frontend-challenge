@@ -3,6 +3,7 @@ import type { Node, Primitive, Transform } from './types';
 import Viewport3D from './Viewport3D';
 import ModelTree from './ModelTree';
 import PropsPanel from './PropsPanel';
+import NameModal from './NameModal';
 
 type ModelCtx = {
   byId: Record<string, Node>;
@@ -13,6 +14,8 @@ type ModelCtx = {
   addPrimitive: (p: Primitive) => void;
   addGroup: () => void;
   setParent: (id: string, newParentId: string | null) => void;
+  rename: (id: string, newName: string) => void;
+  updatePrimitive: (id: string, patch: Partial<Primitive>) => void;
 };
 
 const ModelContext = createContext<ModelCtx | null>(null);
@@ -28,59 +31,57 @@ export default function App() {
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // a "group" is any node with children array (root or subassembly)
+  const [pending, setPending] = useState<null | { type: 'primitive' | 'group'; payload: any }>(null);
+
   const isGroup = (n?: Node) => !!n && n.children !== undefined;
 
-  const addPrimitive: ModelCtx['addPrimitive'] = (p) => {
+  const finalizeAdd = (name: string) => {
+    if (!pending) return;
     const newId = nid();
-    const name = p.type;
-
     setById(prev => {
       const selected = selectedId ? prev[selectedId] : undefined;
       const parentId = (selected && isGroup(selected)) ? selected.id : rootId;
       const parent = prev[parentId];
 
-      const newNode: Node = {
-        id: newId,
-        name,
-        parentId: parent.id,
-        transform: defT(),
-        primitive: p
-      };
-      return {
-        ...prev,
-        [newId]: newNode,
-        [parent.id]: { ...parent, children: [...(parent.children ?? []), newId] }
-      };
+      if (pending.type === 'primitive') {
+        const p = pending.payload as Primitive;
+        const newNode: Node = {
+          id: newId,
+          name,
+          parentId: parent.id,
+          transform: defT(),
+          primitive: p
+        };
+        return {
+          ...prev,
+          [newId]: newNode,
+          [parent.id]: { ...parent, children: [...(parent.children ?? []), newId] }
+        };
+      } else {
+        const newGroup: Node = {
+          id: newId,
+          name,
+          parentId: parent.id,
+          transform: defT(),
+          children: []
+        };
+        return {
+          ...prev,
+          [newId]: newGroup,
+          [parent.id]: { ...parent, children: [...(parent.children ?? []), newId] }
+        };
+      }
     });
-
     setSelectedId(newId);
+    setPending(null);
   };
 
-  const addGroup: ModelCtx['addGroup'] = () => {
-    const newId = nid();
-    const name = 'Subassembly';
+  const addPrimitive = (p: Primitive) => {
+    setPending({ type: 'primitive', payload: p });
+  };
 
-    setById(prev => {
-      const selected = selectedId ? prev[selectedId] : undefined;
-      const parentId = (selected && isGroup(selected)) ? selected.id : rootId;
-      const parent = prev[parentId];
-
-      const newGroup: Node = {
-        id: newId,
-        name,
-        parentId: parent.id,
-        transform: defT(),
-        children: []
-      };
-      return {
-        ...prev,
-        [newId]: newGroup,
-        [parent.id]: { ...parent, children: [...(parent.children ?? []), newId] }
-      };
-    });
-
-    setSelectedId(newId);
+  const addGroup = () => {
+    setPending({ type: 'group', payload: null });
   };
 
   const setParent: ModelCtx['setParent'] = (id, newParentId) => {
@@ -90,7 +91,6 @@ export default function App() {
       const oldParentId = node.parentId;
       const next = { ...prev };
 
-      // remove from old parent
       if (oldParentId && next[oldParentId]) {
         next[oldParentId] = {
           ...next[oldParentId],
@@ -98,10 +98,8 @@ export default function App() {
         };
       }
 
-      // update node
       next[id] = { ...node, parentId: newParentId };
 
-      // add to new parent
       if (newParentId && next[newParentId]) {
         next[newParentId] = {
           ...next[newParentId],
@@ -113,9 +111,28 @@ export default function App() {
     });
   };
 
+  const rename: ModelCtx['rename'] = (id, newName) => {
+    setById(prev => {
+      const n = prev[id];
+      if (!n) return prev;
+      return { ...prev, [id]: { ...n, name: newName } };
+    });
+  };
+
+  const updatePrimitive: ModelCtx['updatePrimitive'] = (id, patch) => {
+    setById(prev => {
+      const n = prev[id];
+      if (!n?.primitive) return prev;
+      return {
+        ...prev,
+        [id]: { ...n, primitive: { ...n.primitive, ...patch } as Primitive }
+      };
+    });
+  };
+
   const api = useMemo<ModelCtx>(() => ({
     byId, setById, rootId, selectedId, setSelectedId,
-    addPrimitive, addGroup, setParent
+    addPrimitive, addGroup, setParent, rename, updatePrimitive
   }), [byId, selectedId]);
 
   return (
@@ -125,6 +142,13 @@ export default function App() {
         <Viewport3D />
         <PropsPanel />
       </div>
+      {pending && (
+        <NameModal
+          suggested={pending.type === 'primitive' ? pending.payload.type : 'Subassembly'}
+          onSubmit={finalizeAdd}
+          onCancel={() => setPending(null)}
+        />
+      )}
     </ModelContext.Provider>
   );
 }

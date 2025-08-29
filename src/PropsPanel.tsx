@@ -15,8 +15,23 @@ export default function PropsPanel() {
   const node = byId[selectedId];
   if (!node) return null;
 
-  // groups = all nodes with children array (so groups & root)
-  const groups = Object.values(byId).filter(n => n.children);
+  // helper: collect all descendants of current node
+  const collectDescendants = (id: string, acc: Set<string>) => {
+    const n = byId[id];
+    if (!n?.children) return;
+    for (const cid of n.children) {
+      acc.add(cid);
+      collectDescendants(cid, acc);
+    }
+  };
+
+  const invalidIds = new Set<string>([node.id]);
+  collectDescendants(node.id, invalidIds);
+
+  // only groups that are not the node itself or its descendants
+  const groups = Object.values(byId).filter(
+    n => n.children && !invalidIds.has(n.id)
+  );
 
   return (
     <div style={{ flex: 2, padding: 8, borderLeft: '1px solid #ddd' }}>
@@ -24,7 +39,9 @@ export default function PropsPanel() {
 
       <div><strong>Name:</strong> {node.name}</div>
       <div><strong>ID:</strong> {node.id}</div>
-      <div><strong>Type:</strong> {node.primitive ? node.primitive.type : '[Group]'}</div>
+      {node.id !== 'root' && (
+        <div><strong>Type:</strong> {node.primitive ? node.primitive.type : '[Subassembly]'}</div>
+      )}
 
       {node.id !== 'root' && (
         <label style={{ display: 'block', marginTop: 8 }}>

@@ -5,9 +5,11 @@ function TreeItem({ node }: { node: Node }) {
   const { byId, selectedId, setSelectedId } = useModel();
   const isSelected = selectedId === node.id;
 
-  const label = node.primitive
-    ? `${node.name} (${node.primitive.type})`
-    : `${node.name} [Group]`;
+  const label = node.id === 'root'
+    ? `${node.name}`
+    : node.primitive
+        ? `${node.name} (${node.primitive.type})`
+        : `${node.name} [Subassembly]`;
 
   return (
     <div style={{ marginLeft: node.parentId ? 12 : 0 }}>

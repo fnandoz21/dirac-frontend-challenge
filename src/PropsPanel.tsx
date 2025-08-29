@@ -1,7 +1,7 @@
 import { useModel } from './App';
 
 export default function PropsPanel() {
-  const { byId, selectedId, setParent, rename, updatePrimitive } = useModel();
+  const { byId, selectedId, setParent, rename, updatePrimitive, deleteNode } = useModel();
 
   if (!selectedId) {
     return (
@@ -54,7 +54,7 @@ export default function PropsPanel() {
 
       {node.id !== 'root' && (
         <label style={{ display: 'block', marginTop: 8 }}>
-          Subassembly:
+          <strong>Subassembly: </strong>
           <select
             value={node.parentId ?? ''}
             onChange={e => {
@@ -73,7 +73,7 @@ export default function PropsPanel() {
 
       {node.primitive && (
         <div style={{ marginTop: 12 }}>
-          <h5>Dimensions</h5>
+          <h4>Dimensions</h4>
           {node.primitive.type === 'box' && (
             <>
               <label>W: <input
@@ -152,6 +152,15 @@ export default function PropsPanel() {
           )}
         </div>
       )}
+
+      <div style={{ marginTop: 16 }}>
+        <button
+          onClick={() => deleteNode(node.id)}
+          style={{ background: '#e74c3c', color: 'white', padding: '6px 12px', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+        >
+          {node.id === 'root' ? 'Clear Root' : 'Delete'}
+        </button>
+      </div>
     </div>
   );
 }

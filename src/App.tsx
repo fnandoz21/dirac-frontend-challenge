@@ -16,6 +16,7 @@ type ModelCtx = {
   setParent: (id: string, newParentId: string | null) => void;
   rename: (id: string, newName: string) => void;
   updatePrimitive: (id: string, patch: Partial<Primitive>) => void;
+  deleteNode: (id: string) => void;
 };
 
 const ModelContext = createContext<ModelCtx | null>(null);
@@ -130,9 +131,46 @@ export default function App() {
     });
   };
 
+  const deleteNode: ModelCtx['deleteNode'] = (id) => {
+    setById(prev => {
+      if (id === rootId) {
+        // clear root instead of deleting
+        return { ...prev, [rootId]: { ...prev[rootId], children: [] } };
+      }
+
+      const node = prev[id];
+      if (!node) return prev;
+      const next = { ...prev };
+
+      // remove from parent's children
+      if (node.parentId && next[node.parentId]) {
+        next[node.parentId] = {
+          ...next[node.parentId],
+          children: (next[node.parentId].children ?? []).filter(cid => cid !== id)
+        };
+      }
+
+      // recursively delete descendants
+      const removeRec = (nid: string) => {
+        const n = next[nid];
+        if (!n) return;
+        if (n.children) {
+          for (const cid of n.children) removeRec(cid);
+        }
+        delete next[nid];
+      };
+      removeRec(id);
+
+      return next;
+    });
+
+    // clear selection
+    setSelectedId(null);
+  };
+
   const api = useMemo<ModelCtx>(() => ({
     byId, setById, rootId, selectedId, setSelectedId,
-    addPrimitive, addGroup, setParent, rename, updatePrimitive
+    addPrimitive, addGroup, setParent, rename, updatePrimitive, deleteNode
   }), [byId, selectedId]);
 
   return (

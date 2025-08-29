@@ -1,7 +1,7 @@
 import { useModel } from './App';
 
 export default function PropsPanel() {
-  const { byId, selectedId, setParent, rename, updatePrimitive, deleteNode } = useModel();
+  const { byId, selectedId, setParent, rename, updatePrimitive, deleteNode, moveUp, moveDown } = useModel();
 
   if (!selectedId) {
     return (
@@ -154,9 +154,28 @@ export default function PropsPanel() {
       )}
 
       <div style={{ marginTop: 16 }}>
+        <div>
+            <strong>Model Tree Location</strong>
+        </div>
+        {node.parentId && (
+          <>
+              <button
+                onClick={() => moveUp(node.id)}
+                style={{ marginTop: "6px", background: '#517ee8', color: 'white', padding: '6px 12px', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+              >
+                ↑ Move Up
+              </button>
+              <button
+                onClick={() => moveDown(node.id)}
+                style={{ marginLeft: '6px', background: '#517ee8', color: 'white', padding: '6px 12px', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+              >
+                ↓ Move Down
+              </button>
+          </>
+        )}
         <button
           onClick={() => deleteNode(node.id)}
-          style={{ background: '#e74c3c', color: 'white', padding: '6px 12px', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+          style={{ marginTop: '12px', background: '#e74c3c', color: 'white', padding: '6px 12px', border: 'none', borderRadius: 4, cursor: 'pointer' }}
         >
           {node.id === 'root' ? 'Clear Root' : 'Delete'}
         </button>

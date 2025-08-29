@@ -17,6 +17,8 @@ type ModelCtx = {
   rename: (id: string, newName: string) => void;
   updatePrimitive: (id: string, patch: Partial<Primitive>) => void;
   deleteNode: (id: string) => void;
+  moveUp: (id: string) => void;
+  moveDown: (id: string) => void;
 };
 
 const ModelContext = createContext<ModelCtx | null>(null);
@@ -168,9 +170,51 @@ export default function App() {
     setSelectedId(null);
   };
 
+  const moveUp: ModelCtx['moveUp'] = (id) => {
+    setById(prev => {
+      const node = prev[id];
+      if (!node || !node.parentId) return prev;
+      const parent = prev[node.parentId];
+      if (!parent?.children) return prev;
+
+      const idx = parent.children.indexOf(id);
+      if (idx <= 0) return prev; // already first
+
+      const newChildren = [...parent.children];
+      [newChildren[idx - 1], newChildren[idx]] = [newChildren[idx], newChildren[idx - 1]];
+
+      return {
+        ...prev,
+        [parent.id]: { ...parent, children: newChildren }
+      };
+    });
+  };
+
+  const moveDown: ModelCtx['moveDown'] = (id) => {
+    setById(prev => {
+      const node = prev[id];
+      if (!node || !node.parentId) return prev;
+      const parent = prev[node.parentId];
+      if (!parent?.children) return prev;
+
+      const idx = parent.children.indexOf(id);
+      if (idx === -1 || idx >= parent.children.length - 1) return prev; // already last
+
+      const newChildren = [...parent.children];
+      [newChildren[idx], newChildren[idx + 1]] = [newChildren[idx + 1], newChildren[idx]];
+
+      return {
+        ...prev,
+        [parent.id]: { ...parent, children: newChildren }
+      };
+    });
+  };
+
+
   const api = useMemo<ModelCtx>(() => ({
     byId, setById, rootId, selectedId, setSelectedId,
-    addPrimitive, addGroup, setParent, rename, updatePrimitive, deleteNode
+    addPrimitive, addGroup, setParent, rename, updatePrimitive,
+    deleteNode, moveUp, moveDown
   }), [byId, selectedId]);
 
   return (

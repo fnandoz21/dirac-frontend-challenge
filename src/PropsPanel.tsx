@@ -1,7 +1,7 @@
 import { useModel } from './App';
 
 export default function PropsPanel() {
-  const { byId, selectedId, setParent } = useModel();
+  const { byId, selectedId, setParent, rename, updatePrimitive } = useModel();
 
   if (!selectedId) {
     return (
@@ -37,7 +37,16 @@ export default function PropsPanel() {
     <div style={{ flex: 2, padding: 8, borderLeft: '1px solid #ddd' }}>
       <h4>Properties</h4>
 
-      <div><strong>Name:</strong> {node.name}</div>
+      <label style={{ display: 'block', marginBottom: 8 }}>
+        <strong>Name:</strong>
+        <input
+          type="text"
+          value={node.name}
+          onChange={e => rename(node.id, e.target.value)}
+          style={{ marginLeft: 6 }}
+        />
+      </label>
+
       <div><strong>ID:</strong> {node.id}</div>
       {node.id !== 'root' && (
         <div><strong>Type:</strong> {node.primitive ? node.primitive.type : '[Subassembly]'}</div>
@@ -60,6 +69,88 @@ export default function PropsPanel() {
             ))}
           </select>
         </label>
+      )}
+
+      {node.primitive && (
+        <div style={{ marginTop: 12 }}>
+          <h5>Dimensions</h5>
+          {node.primitive.type === 'box' && (
+            <>
+              <label>W: <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={node.primitive.w}
+                onChange={e => updatePrimitive(node.id, { w: parseFloat(e.target.value) || 0 })}
+              /></label><br/>
+              <label>H: <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={node.primitive.h}
+                onChange={e => updatePrimitive(node.id, { h: parseFloat(e.target.value) || 0 })}
+              /></label><br/>
+              <label>D: <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={node.primitive.d}
+                onChange={e => updatePrimitive(node.id, { d: parseFloat(e.target.value) || 0 })}
+              /></label>
+            </>
+          )}
+          {node.primitive.type === 'sphere' && (
+            <label>R: <input
+              type="number"
+              step="0.1"
+              min="0"
+              value={node.primitive.r}
+              onChange={e => updatePrimitive(node.id, { r: parseFloat(e.target.value) || 0 })}
+            /></label>
+          )}
+          {node.primitive.type === 'cylinder' && (
+            <>
+              <label>Rt: <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={node.primitive.rt}
+                onChange={e => updatePrimitive(node.id, { rt: parseFloat(e.target.value) || 0 })}
+              /></label><br/>
+              <label>Rb: <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={node.primitive.rb}
+                onChange={e => updatePrimitive(node.id, { rb: parseFloat(e.target.value) || 0 })}
+              /></label><br/>
+              <label>H: <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={node.primitive.h}
+                onChange={e => updatePrimitive(node.id, { h: parseFloat(e.target.value) || 0 })}
+              /></label>
+            </>
+          )}
+          {node.primitive.type === 'cone' && (
+            <>
+              <label>R: <input
+                type="number"
+                step="0.1"
+                value={node.primitive.r}
+                onChange={e => updatePrimitive(node.id, { r: parseFloat(e.target.value) || 0 })}
+              /></label><br/>
+              <label>H: <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={node.primitive.h}
+                onChange={e => updatePrimitive(node.id, { h: parseFloat(e.target.value) || 0 })}
+              /></label>
+            </>
+          )}
+        </div>
       )}
     </div>
   );
